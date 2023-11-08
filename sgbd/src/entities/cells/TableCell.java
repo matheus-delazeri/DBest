@@ -13,7 +13,7 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
-public abstract sealed class TableCell extends Cell permits CSVTableCell, FYITableCell, MemoryTableCell {
+public abstract sealed class TableCell extends Cell permits CSVTableCell, FYITableCell, MemoryTableCell, JDBCTableCell {
 
     private final Table table;
 

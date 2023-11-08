@@ -30,6 +30,7 @@ import gui.frames.dsl.TextEditor;
 import gui.frames.forms.create.FormFrameCreateTable;
 import gui.frames.forms.importexport.ExportAsForm;
 import gui.frames.forms.importexport.ImportAsForm;
+import gui.frames.jdbc.ConnectionsFrame;
 import gui.frames.main.MainFrame;
 import utils.RandomUtils;
 
@@ -64,6 +65,8 @@ public class MainController extends MainFrame {
     public static ConsoleFrame consoleFrame = null;
 
     public static ComparatorFrame comparatorFrame = null;
+
+    public static ConnectionsFrame connectionFrame = null;
 
     private static int currentTableYPosition = 0;
 
@@ -133,6 +136,7 @@ public class MainController extends MainFrame {
                 case IMPORT_FILE -> this.createNewTable(CurrentAction.ActionType.IMPORT_FILE);
                 case CREATE_TABLE_CELL -> this.createNewTable(CurrentAction.ActionType.CREATE_TABLE_CELL);
                 case OPEN_CONSOLE -> this.openConsole();
+                case OPEN_CONNECTIONS -> this.openConnections();
                 case OPEN_TEXT_EDITOR -> this.changeScreen();
                 case OPEN_COMPARATOR -> this.openComparator();
             }
@@ -374,6 +378,18 @@ public class MainController extends MainFrame {
         consoleFrame.setLocationRelativeTo(null);
         consoleFrame.setExtendedState(Frame.NORMAL);
         consoleFrame.toFront();
+    }
+
+    private void openConnections() {
+
+        if (connectionFrame == null) {
+            connectionFrame = new ConnectionsFrame();
+            return;
+        }
+
+        connectionFrame.setLocationRelativeTo(null);
+        connectionFrame.setExtendedState(Frame.NORMAL);
+        connectionFrame.toFront();
     }
 
     private void openComparator() {

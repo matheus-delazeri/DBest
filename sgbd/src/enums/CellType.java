@@ -7,6 +7,7 @@ public enum CellType {
     MEMORY_TABLE ("memory"),
     CSV_TABLE    ("csv"),
     FYI_TABLE    ("fyi"),
+    JDBC_TABLE   ("jdbc"),
     OPERATION    ("operation");
 
     public final String id;
@@ -24,6 +25,8 @@ public enum CellType {
           case CSVTableCell ignored -> CSV_TABLE;
 
           case OperationCell ignored -> OPERATION;
+
+          case JDBCTableCell ignored -> JDBC_TABLE;
 
           case MemoryTableCell ignored -> MEMORY_TABLE;
 

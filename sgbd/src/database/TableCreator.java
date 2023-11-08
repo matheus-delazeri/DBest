@@ -4,12 +4,13 @@ import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.mxgraph.model.mxCell;
 import com.mxgraph.model.mxGeometry;
+
 import controllers.ConstantController;
-import controllers.MainController;
-import dsl.utils.DslUtils;
+import database.jdbc.ConnectionConfig;
 import entities.Column;
 import entities.cells.CSVTableCell;
 import entities.cells.FYITableCell;
+import entities.cells.JDBCTableCell;
 import entities.cells.MemoryTableCell;
 import entities.cells.TableCell;
 import enums.CellType;
@@ -23,33 +24,27 @@ import sgbd.prototype.RowData;
 import sgbd.prototype.metadata.Metadata;
 import sgbd.source.components.Header;
 import sgbd.source.table.CSVTable;
-import sgbd.source.table.MemoryTable;
 import sgbd.source.table.Table;
 
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
-import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Scanner;
-import java.util.TreeMap;
+import java.util.*;
 
 public class TableCreator {
 
     public static TableCell createTable(File file) throws FileNotFoundException {
 
-        if(!file.isFile()) throw new IllegalArgumentException(ConstantController.getString("file.error.notAFile"));
+        if (!file.isFile()) throw new IllegalArgumentException(ConstantController.getString("file.error.notAFile"));
 
-        if(!file.getName().endsWith(FileType.HEADER.extension)) throw new IllegalArgumentException(ConstantController.getString("file.error.wrongExtension"));
-
+        if (!file.getName().endsWith(FileType.HEADER.extension)) {
+            throw new IllegalArgumentException(ConstantController.getString("file.error.wrongExtension"));
+        }
 
         JsonObject headerFile = new Gson().fromJson(new FileReader(file), JsonObject.class);
         CellType cellType = headerFile.getAsJsonObject("information").get("file-path").getAsString()
-                .replaceAll("' | \"", "").endsWith(".dat")
-                ? CellType.FYI_TABLE : CellType.CSV_TABLE;
+            .replaceAll("' | \"", "").endsWith(".dat")
+            ? CellType.FYI_TABLE : CellType.CSV_TABLE;
 
         String path = file.getAbsolutePath();
 
@@ -58,20 +53,21 @@ public class TableCreator {
 
         String tableName = headerFile.getAsJsonObject("information").get("tablename").getAsString();
 
-        return switch (cellType){
+        return switch (cellType) {
 
             case MEMORY_TABLE, OPERATION -> throw new IllegalArgumentException();
             case CSV_TABLE -> new CSVTableCell(tableName,
-                    table, new File(path));
+                table, new File(path));
             case FYI_TABLE -> new FYITableCell(tableName,
-                    table, new File(path));
-
+                table, new File(path));
+            // TODO: Review unreachable statement
+            case JDBC_TABLE -> new JDBCTableCell(tableName,
+                table, new File(path));
         };
-
     }
 
     public static CSVTableCell createCSVTable(
-            String tableName, List<entities.Column> columns, CSVInfo csvInfo, boolean mustExport
+        String tableName, List<entities.Column> columns, CSVInfo csvInfo, boolean mustExport
     ) {
         Prototype prototype = createPrototype(columns);
 
@@ -89,8 +85,9 @@ public class TableCreator {
         FileUtils.moveToTempDirectory(headerFile);
         headerFile = FileUtils.getFileFromTempDirectory(headerFileName).get();
 
-        if (mustExport)
+        if (mustExport) {
             return new CSVTableCell(new mxCell(null, new mxGeometry(), ConstantController.J_CELL_CSV_TABLE_STYLE), tableName, columns, table, prototype, headerFile);
+        }
 
         mxCell jCell = (mxCell) MainFrame
             .getGraph()
@@ -99,11 +96,11 @@ public class TableCreator {
                 ConstantController.TABLE_CELL_WIDTH, ConstantController.TABLE_CELL_HEIGHT, CellType.CSV_TABLE.id
             );
 
-         return new CSVTableCell(jCell, tableName, columns, table, prototype, headerFile);
+        return new CSVTableCell(jCell, tableName, columns, table, prototype, headerFile);
     }
 
     public static FYITableCell createFYITable(
-            String tableName, List<entities.Column> columns, Map<Integer, Map<String, String>> data, File headerFile, boolean mustExport
+        String tableName, List<entities.Column> columns, Map<Integer, Map<String, String>> data, File headerFile, boolean mustExport
     ) {
         List<RowData> rows = new ArrayList<>(getRowData(columns, data));
 
@@ -114,8 +111,9 @@ public class TableCreator {
         table.insert(rows);
         table.saveHeader(String.format("%s%s", tableName, FileType.HEADER.extension));
 
-        if (mustExport)
-            return  new FYITableCell(new mxCell(null, new mxGeometry(), ConstantController.J_CELL_FYI_TABLE_STYLE), tableName, columns, table, prototype, headerFile);
+        if (mustExport) {
+            return new FYITableCell(new mxCell(null, new mxGeometry(), ConstantController.J_CELL_FYI_TABLE_STYLE), tableName, columns, table, prototype, headerFile);
+        }
 
         mxCell jCell = (mxCell) MainFrame
             .getGraph()
@@ -127,36 +125,72 @@ public class TableCreator {
         return new FYITableCell(jCell, tableName, columns, table, prototype, headerFile);
     }
 
-    public static void createIgnoredPKColumn(List<entities.Column> columns, Map<Integer, Map<String, String>> data, String tableName){
+    /**
+     * TODO: Review deletion of headerFile parameter && Review child logic, must be a better way
+     */
+    public static JDBCTableCell createJDBCTable(
+        String tableName, ConnectionConfig connectionConfig, boolean mustExport
+    ) {
+
+        Header header = new Header(null, tableName);
+        String tableType = connectionConfig.getTableType();
+
+        header.set(Header.TABLE_TYPE, tableType);
+        header.set("connection-url", connectionConfig.connectionURL);
+        header.set("connection-user", connectionConfig.username);
+        header.set("connection-password", connectionConfig.password);
+
+        Table table = Table.openTable(header, false);
+        table.open();
+        table.saveHeader(String.format("%s%s", tableName, FileType.HEADER.extension));
+
+        if (mustExport) {
+            // TODO: Create style for JDBCTable cell
+            return new JDBCTableCell(new mxCell(null, new mxGeometry(), ConstantController.J_CELL_FYI_TABLE_STYLE), tableName, table, null);
+        }
+
+        mxCell jCell = (mxCell) MainFrame
+            .getGraph()
+            .insertVertex(
+                MainFrame.getGraph().getDefaultParent(), null, tableName, 0, 0,
+                ConstantController.TABLE_CELL_WIDTH, ConstantController.TABLE_CELL_HEIGHT, CellType.JDBC_TABLE.id
+            );
+        Prototype prototype = table.getHeader().getPrototype();
+
+        return new JDBCTableCell(jCell, tableName, table, null);
+    }
+
+    public static void createIgnoredPKColumn(List<entities.Column> columns, Map<Integer, Map<String, String>> data, String tableName) {
 
         String ignoredColumnName = "__IDX__";
         int i = 1;
 
-        while (columns.stream().map(column -> column.NAME).toList().contains(ignoredColumnName))
+        while (columns.stream().map(column -> column.NAME).toList().contains(ignoredColumnName)) {
             ignoredColumnName = "__IDX__" + i++;
+        }
 
         columns.add(new Column(ignoredColumnName, tableName, ColumnDataType.LONG, true, true));
 
         HashMap<Integer, Map<String, String>> newData = new HashMap<>();
-        for(Map.Entry<Integer, Map<String, String>> rows : data.entrySet()) {
+        for (Map.Entry<Integer, Map<String, String>> rows : data.entrySet()) {
 
             HashMap<String, String> newValues = new HashMap<>(rows.getValue());
             newValues.put(ignoredColumnName, String.valueOf(rows.getKey()));
 
             newData.put(rows.getKey(), newValues);
-
         }
 
         data.clear();
         data.putAll(newData);
-
     }
 
     public static MemoryTableCell createMemoryTable(
-            String tableName, List<entities.Column> columns, Map<Integer, Map<String, String>> data
+        String tableName, List<entities.Column> columns, Map<Integer, Map<String, String>> data
     ) {
 
-        if(columns.stream().noneMatch(column -> column.IS_PRIMARY_KEY)) createIgnoredPKColumn(columns, data, tableName);
+        if (columns.stream().noneMatch(column -> column.IS_PRIMARY_KEY)) {
+            createIgnoredPKColumn(columns, data, tableName);
+        }
 
         List<RowData> rows = new ArrayList<>(getRowData(columns, data));
 
@@ -170,11 +204,11 @@ public class TableCreator {
         table.insert(rows);
 
         mxCell jCell = (mxCell) MainFrame
-                .getGraph()
-                .insertVertex(
-                        MainFrame.getGraph().getDefaultParent(), null, tableName, 0, 0,
-                        ConstantController.TABLE_CELL_WIDTH, ConstantController.TABLE_CELL_HEIGHT, CellType.MEMORY_TABLE.id
-                );
+            .getGraph()
+            .insertVertex(
+                MainFrame.getGraph().getDefaultParent(), null, tableName, 0, 0,
+                ConstantController.TABLE_CELL_WIDTH, ConstantController.TABLE_CELL_HEIGHT, CellType.MEMORY_TABLE.id
+            );
 
         return new MemoryTableCell(jCell, tableName, columns, table, prototype);
     }
@@ -254,5 +288,4 @@ public class TableCreator {
 
         return rows;
     }
-
 }
