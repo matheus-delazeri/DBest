@@ -66,7 +66,7 @@ public class MainController extends MainFrame {
 
     public static ComparatorFrame comparatorFrame = null;
 
-    public static ConnectionsFrame connectionFrame = null;
+    public static ConnectionsFrame connectionsFrame = null;
 
     private static int currentTableYPosition = 0;
 
@@ -382,14 +382,14 @@ public class MainController extends MainFrame {
 
     private void openConnections() {
 
-        if (connectionFrame == null) {
-            connectionFrame = new ConnectionsFrame();
+        if (connectionsFrame == null) {
+            connectionsFrame = new ConnectionsFrame();
             return;
         }
 
-        connectionFrame.setLocationRelativeTo(null);
-        connectionFrame.setExtendedState(Frame.NORMAL);
-        connectionFrame.toFront();
+        connectionsFrame.setLocationRelativeTo(null);
+        connectionsFrame.setExtendedState(Frame.NORMAL);
+        connectionsFrame.toFront();
     }
 
     private void openComparator() {

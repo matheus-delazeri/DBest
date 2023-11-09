@@ -1,5 +1,7 @@
 package database.jdbc;
 
+import java.sql.*;
+
 public class PostgreSQLConnectionConfig extends ConnectionConfig {
 
     public PostgreSQLConnectionConfig(String host, String database, String username, String password) {
@@ -9,5 +11,11 @@ public class PostgreSQLConnectionConfig extends ConnectionConfig {
     @Override
     protected String constructConnectionURL() {
         return "jdbc:postgresql://" + host + "/" + database;
+    }
+
+    public static ResultSet getTables(Connection connection) throws SQLException {
+        Statement statement = connection.createStatement();
+        String query = "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'";
+        return statement.executeQuery(query);
     }
 }

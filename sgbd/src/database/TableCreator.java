@@ -155,7 +155,6 @@ public class TableCreator {
                 MainFrame.getGraph().getDefaultParent(), null, tableName, 0, 0,
                 ConstantController.TABLE_CELL_WIDTH, ConstantController.TABLE_CELL_HEIGHT, CellType.JDBC_TABLE.id
             );
-        Prototype prototype = table.getHeader().getPrototype();
 
         return new JDBCTableCell(jCell, tableName, table, null);
     }

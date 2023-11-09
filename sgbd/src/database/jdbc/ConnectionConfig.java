@@ -4,32 +4,45 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.annotations.SerializedName;
 
+import engine.exceptions.DataBaseException;
+
 import java.io.*;
 import java.security.InvalidParameterException;
+import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Date;
 
 public class ConnectionConfig {
+
     public static final String CONFIG_FILES_FOLDER = "conf/jdbc/connections/";
 
     @SerializedName("id")
     private final String id;
+
     @SerializedName("host")
     public String host;
+
     @SerializedName("username")
     public String username;
+
     @SerializedName("password")
     public String password;
+
     @SerializedName("database")
     public String database;
+
     @SerializedName("connectionURL")
     public String connectionURL;
+
     @SerializedName("type")
     public String type = getClass().getName();
 
-    protected String constructConnectionURL() { return null; };
+    protected String constructConnectionURL() {
+        return null;
+    }
 
     public ConnectionConfig(String host, String database, String username, String password) {
         this.id = String.valueOf(new Date().getTime());
@@ -50,6 +63,41 @@ public class ConnectionConfig {
         } catch (SQLException e) {
             return false;
         }
+    }
+
+    /**
+     * TODO: Review logic
+     */
+    public ArrayList<String> getTableNames() {
+
+        try (Connection connection = DriverManager.getConnection(connectionURL, username, password)) {
+            if (isMySQL()) {
+                ResultSet resultSet = MySQLConnectionConfig.getTables(connection);
+                return extractTableNames(resultSet);
+            } else if (isPostgreSQL()) {
+                ResultSet resultSet = PostgreSQLConnectionConfig.getTables(connection);
+                return extractTableNames(resultSet);
+            } else if (isOracle()) {
+                ResultSet resultSet = OracleConnectionConfig.getTables(connection);
+                return extractTableNames(resultSet);
+            }
+        } catch (SQLException e) {
+            throw new DataBaseException("ConnectionConfig", e.getMessage());
+        }
+
+        return new ArrayList<>();
+    }
+
+    private ArrayList<String> extractTableNames(ResultSet resultSet) {
+        ArrayList<String> tableNames = new ArrayList<>();
+        try {
+            while (resultSet.next()) {
+                tableNames.add(resultSet.getString(1));
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return tableNames;
     }
 
     private void createConfigFolder() {
@@ -90,7 +138,7 @@ public class ConnectionConfig {
         return null;
     }
 
-    public void delete(String id) {
+    public void delete() {
         String filePath = CONFIG_FILES_FOLDER + id + ".json";
         File configFile = new File(filePath);
 
@@ -131,12 +179,24 @@ public class ConnectionConfig {
         return configFiles;
     }
 
+    public boolean isMySQL() {
+        return type.equals(MySQLConnectionConfig.class.getName());
+    }
+
+    public boolean isPostgreSQL() {
+        return type.equals(PostgreSQLConnectionConfig.class.getName());
+    }
+
+    public boolean isOracle() {
+        return type.equals(OracleConnectionConfig.class.getName());
+    }
+
     public String getTableType() {
-        if (type.equals(MySQLConnectionConfig.class.getName())) {
+        if (isMySQL()) {
             return "MySQLTable";
-        } else if (type.equals(PostgreSQLConnectionConfig.class.getName())) {
+        } else if (isPostgreSQL()) {
             return "PostgreSQL";
-        } else if (type.equals(OracleConnectionConfig.class.getName())) {
+        } else if (isOracle()) {
             return "Oracle";
         } else {
             throw new InvalidParameterException("Connection config passed as parameter isn't mapped!");
