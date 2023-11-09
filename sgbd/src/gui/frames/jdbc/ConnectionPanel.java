@@ -153,13 +153,19 @@ public class ConnectionPanel extends JPanel {
 
         tablesButton.addActionListener(e -> {
             ConnectionConfig connectionConfig = leftPanel.getCurrentConnection();
-            TableSelectionPanel tableSelectionPanel = new TableSelectionPanel(connectionConfig);
+            if (connectionConfig != null) {
+                if (connectionConfig.test()) {
+                    TableSelectionPanel tableSelectionPanel = new TableSelectionPanel(connectionConfig);
 
-            JDialog tableSelectionDialog = new JDialog();
-            tableSelectionDialog.add(tableSelectionPanel);
-            tableSelectionDialog.pack();
-            tableSelectionDialog.setLocationRelativeTo(this);
-            tableSelectionDialog.setVisible(true);
+                    JDialog tableSelectionDialog = new JDialog();
+                    tableSelectionDialog.add(tableSelectionPanel);
+                    tableSelectionDialog.pack();
+                    tableSelectionDialog.setLocationRelativeTo(null);
+                    tableSelectionDialog.setVisible(true);
+                } else {
+                    displayTestResult(false);
+                }
+            }
         });
     }
 
@@ -169,6 +175,7 @@ public class ConnectionPanel extends JPanel {
             databaseTextField.setText(currentConnection.database);
             userTextField.setText(currentConnection.username);
             passwordField.setText(currentConnection.password);
+            connectionURLField.setText(currentConnection.connectionURL);
         } else {
             hostTextField.setText("");
             databaseTextField.setText("");

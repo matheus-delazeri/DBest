@@ -38,7 +38,7 @@ public class TableSelectionPanel extends JPanel {
             List<String> selectedTables = tableList.getSelectedValuesList();
 
             for (String selectedTable : selectedTables) {
-                TableCell tableCell = TableCreator.createJDBCTable(selectedTable, connectionConfig, false);
+                TableCell tableCell = TableCreator.createJDBCTable(selectedTable, connectionConfig, true);
                 MainController.saveTable(tableCell);
             }
         });

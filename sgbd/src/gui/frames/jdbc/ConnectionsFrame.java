@@ -16,6 +16,7 @@ public class ConnectionsFrame extends JFrame {
 
     private void initGUI() {
         setResizable(false);
+        setSize(400, 300);
         setLocationRelativeTo(null);
         setTitle(ConstantController.getString("connections"));
 

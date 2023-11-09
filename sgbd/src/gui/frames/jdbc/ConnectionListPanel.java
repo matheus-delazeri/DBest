@@ -17,7 +17,7 @@ public class ConnectionListPanel extends JPanel {
     private ConnectionPanel rightPanel;
 
     public ConnectionListPanel() {
-        initComponents();
+        initGUI();
     }
 
     public void setRightPanel(ConnectionPanel rightPanel)
@@ -25,7 +25,7 @@ public class ConnectionListPanel extends JPanel {
         this.rightPanel = rightPanel;
     }
 
-    private void initComponents() {
+    private void initGUI() {
         setLayout(new GridLayout(2, 1));
 
         connectionListModel = new DefaultListModel<>();
@@ -67,14 +67,14 @@ public class ConnectionListPanel extends JPanel {
         this.currentConnection = currentConnection;
     }
 
-    public void updateConnectionList() {
+    public void updateConnectionList()
+    {
         connectionListModel.clear();
 
         ArrayList<ConnectionConfig> configuredConnections = ConnectionConfig.getAllConfiguredConnections();
         for (ConnectionConfig connection : configuredConnections) {
             connectionListModel.addElement(connection.host);
         }
-
         connectionList.revalidate();
     }
 }
